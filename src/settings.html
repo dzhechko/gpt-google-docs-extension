@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    .range-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      flex-grow: 1;
+    }
+
+    .value-display {
+      min-width: 40px;
+      text-align: right;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .button {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .button.secondary {
+      background-color: #5f6368;
+    }
+
+    .error {
+      color: #d93025;
+      margin-top: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <form id="settingsForm">
+      <div class="form-group">
+        <label for="baseUrl">URL API:</label>
+        <input type="text" id="baseUrl" name="baseUrl" 
+               placeholder="https://api.openai.com/v1/chat/completions">
+      </div>
+
+      <div class="form-group">
+        <label for="model">Модель:</label>
+        <select id="model" name="model">
+          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+          <option value="gpt-4">GPT-4</option>
+          <option value="gpt-4-turbo">GPT-4 Turbo</option>
+          <option value="custom">Другая модель...</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="customModelGroup" style="display: none;">
+        <label for="customModel">Название модели:</label>
+        <input type="text" id="customModel" name="customModel" 
+               placeholder="Введите название модели">
+      </div>
+
+      <div class="form-group">
+        <label for="temperature">Temperature (0-1):</label>
+        <div class="range-container">
+          <input type="range" id="temperature" name="temperature" 
+                 min="0" max="1" step="0.1" value="0.7">
+          <span class="value-display" id="temperatureValue">0.7</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="maxTokens">Max Tokens:</label>
+        <input type="number" id="maxTokens" name="maxTokens" 
+               min="150" value="150">
+      </div>
+
+      <div class="error" id="error"></div>
+
+      <div class="button-container">
+        <button type="button" class="button secondary" onclick="closeDialog()">Отмена</button>
+        <button type="button" class="button" onclick="saveSettings()">Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Handle model selection change
+    document.getElementById('model').addEventListener('change', function() {
+      const customModelGroup = document.getElementById('customModelGroup');
+      customModelGroup.style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+
+    // Update temperature display
+    document.getElementById('temperature').addEventListener('input', function() {
+      document.getElementById('temperatureValue').textContent = this.value;
+    });
+
+    // Load current settings
+    google.script.run
+      .withSuccessHandler(loadSettings)
+      .getSettings();
+
+    function loadSettings(settings) {
+      if (!settings) return;
+      
+      document.getElementById('baseUrl').value = settings.baseUrl || '';
+      document.getElementById('temperature').value = settings.temperature || 0.7;
+      document.getElementById('temperatureValue').textContent = settings.temperature || 0.7;
+      document.getElementById('maxTokens').value = settings.maxTokens || 150;
+      
+      const modelSelect = document.getElementById('model');
+      const customModelGroup = document.getElementById('customModelGroup');
+      
+      if (['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'].includes(settings.model)) {
+        modelSelect.value = settings.model;
+      } else {
+        modelSelect.value = 'custom';
+        customModelGroup.style.display = 'block';
+        document.getElementById('customModel').value = settings.model || '';
+      }
+    }
+
+    function saveSettings() {
+      const modelSelect = document.getElementById('model');
+      const model = modelSelect.value === 'custom' 
+        ? document.getElementById('customModel').value 
+        : modelSelect.value;
+
+      const settings = {
+        baseUrl: document.getElementById('baseUrl').value,
+        model: model,
+        temperature: parseFloat(document.getElementById('temperature').value),
+        maxTokens: parseInt(document.getElementById('maxTokens').value)
+      };
+
+      google.script.run
+        .withSuccessHandler(closeDialog)
+        .withFailureHandler(showError)
+        .saveSettings(settings);
+    }
+
+    function showError(error) {
+      const errorDiv = document.getElementById('error');
+      errorDiv.style.display = 'block';
+      errorDiv.textContent = 'Ошибка: ' + error.message;
+    }
+
+    function closeDialog() {
+      google.script.host.close();
+    }
+  </script>
+</body>
+</html>

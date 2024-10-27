@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 100%;
+    }
+
+    .header {
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #1a73e8;
+      margin-bottom: 8px;
+    }
+
+    .prompt-area {
+      width: 100%;
+      min-height: 100px;
+      padding: 8px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      resize: vertical;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    .button {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+
+    .button:hover {
+      background-color: #1557b0;
+    }
+
+    .button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .loading {
+      display: none;
+      margin-top: 12px;
+      color: #666;
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 12px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      white-space: pre-wrap;
+    }
+
+    .error {
+      color: #d93025;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .preset-prompts {
+      margin-top: 16px;
+      border-top: 1px solid #eee;
+      padding-top: 16px;
+    }
+
+    .preset-button {
+      background-color: #f1f3f4;
+      color: #333;
+      border: 1px solid #dadce0;
+      padding: 6px 12px;
+      margin: 4px;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .preset-button:hover {
+      background-color: #e8eaed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">GPT Помощник</div>
+      <div>Введите запрос или используйте быстрые действия</div>
+    </div>
+
+    <textarea 
+      id="prompt" 
+      class="prompt-area" 
+      placeholder="Введите ваш запрос здесь..."></textarea>
+
+    <button 
+      id="generateBtn" 
+      class="button" 
+      onclick="generateText()">
+      Сгенерировать
+    </button>
+
+    <div id="loading" class="loading">
+      Генерация ответа... ⚡
+    </div>
+
+    <div id="error" class="error"></div>
+
+    <div id="result" class="result" style="display: none;"></div>
+
+    <div class="preset-prompts">
+      <div style="margin-bottom: 8px;">Быстрые действия:</div>
+      <button class="preset-button" onclick="usePreset('improve')">
+        ✨ Улучшить текст
+      </button>
+      <button class="preset-button" onclick="usePreset('summarize')">
+        📝 Краткое содержание
+      </button>
+      <button class="preset-button" onclick="usePreset('grammar')">
+        🔍 Исправить грамматику
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Get DOM elements
+    const promptArea = document.getElementById('prompt');
+    const generateBtn = document.getElementById('generateBtn');
+    const loadingDiv = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
+    const resultDiv = document.getElementById('result');
+
+    // Handle text generation
+    function generateText() {
+      const prompt = promptArea.value.trim();
+      
+      if (!prompt) {
+        showError('Please enter a prompt');
+        return;
+      }
+
+      setLoading(true);
+      hideError();
+      
+      google.script.run
+        .withSuccessHandler(onSuccess)
+        .withFailureHandler(onFailure)
+        .callOpenAI(prompt);
+    }
+
+    // Handle preset prompts
+    function usePreset(type) {
+      const selectedText = promptArea.value.trim();
+      let prompt = '';
+
+      switch(type) {
+        case 'improve':
+          prompt = `Пожалуйста, улучшите этот текст, сохранив его основной смысл: "${selectedText}"`;
+          break;
+        case 'summarize':
+          prompt = `Пожалуйста, сделайте краткое содержание этого текста: "${selectedText}"`;
+          break;
+        case 'grammar':
+          prompt = `Пожалуйста, исправьте грамматические и стилистические ошибки в этом тексте: "${selectedText}"`;
+          break;
+      }
+
+      promptArea.value = prompt;
+    }
+
+    // Success handler
+    function onSuccess(response) {
+      setLoading(false);
+      resultDiv.style.display = 'block';
+      resultDiv.textContent = response;
+    }
+
+    // Error handler
+    function onFailure(error) {
+      setLoading(false);
+      showError('Error: ' + error.message);
+    }
+
+    // Helper functions
+    function setLoading(isLoading) {
+      generateBtn.disabled = isLoading;
+      loadingDiv.classList.toggle('active', isLoading);
+    }
+
+    function showError(message) {
+      errorDiv.style.display = 'block';
+      errorDiv.textContent = 'Ошибка: ' + message;
+    }
+
+    function hideError() {
+      errorDiv.style.display = 'none';
+    }
+  </script>
+</body>
+</html>
